@@ -128,3 +128,28 @@ def remover_usuario_empresa(
     user.empresas.remove(empresa)
     db.commit()
     return {"message": f"Acesso removido: {user.nome} -> {empresa.razao_social}"}
+
+
+@router.post("/users/{user_id}/gerar-token-agenda", response_model=schemas.TokenIntegrationResponse)
+def generate_integration_token(
+    user_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    if current_user.id != user_id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Não autorizado.")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user or not user.is_director:
+        raise HTTPException(status_code=404, detail="Diretor não encontrado.")
+
+    new_token = secrets.token_urlsafe(32)
+    user.integration_token = new_token
+    
+    db.commit()
+    
+    baseUrl = os.getenv("APP_URL")+"/eventos/export"
+    return {
+        "token": new_token,
+        "feed_url": f"{baseUrl}/{new_token}.ics"
+    }

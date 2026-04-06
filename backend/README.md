@@ -38,12 +38,17 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-
-### 3. Instalar Dependências
-
+### 3. Instalar Dependências do Backend
 ```bash
 pip install -r requirements.txt
 ```
+
+### 3.1. Gerar Dependências no development
+```bash
+pip freeze > requirements.txt
+```
+
+
 
 (Caso não tenha o arquivo, instale manualmente: pip install fastapi uvicorn sqlalchemy pydantic[email] passlib[bcrypt] python-jose[cryptography] python-multipart)
 
@@ -71,6 +76,10 @@ Para iniciar o servidor de desenvolvimento com hot-reload:
 
 ```bash
 uvicorn main:app --reload
+```
+ou
+```bash
+python main.py
 ```
 
 A API estará disponível em: http://127.0.0.1:8000

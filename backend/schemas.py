@@ -42,7 +42,7 @@ class VeiculoSimple(BaseModel):
 class UserBase(BaseModel):
     username: str 
     nome: str
-    email: EmailStr
+    email: str
     role: Literal['admin', 'gestor', 'usuario']
     is_active: bool = True
 
@@ -51,7 +51,7 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     nome: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     password: Optional[str] = Field(default=None, min_length=6)
     role: Optional[Literal['admin', 'gestor', 'usuario']] = None
     is_active: Optional[bool] = None
@@ -60,7 +60,15 @@ class UserResponse(UserBase):
     id: int
     data_cadastro: datetime
     empresas: List[EmpresaSimple] = []
-    model_config = ConfigDict(from_attributes=True)
+    is_director: bool
+    integration_token: Optional[str] = None 
+
+    class Config:
+        model_config = ConfigDict(from_attributes=True)
+
+class TokenIntegrationResponse(BaseModel):
+    token: str
+    feed_url: str
 
 # =================================================================
 # 3. SCHEMAS DE ROTEIRO
@@ -177,3 +185,41 @@ class ParceiroResponse(ParceiroBase):
 # =================================================================
 RoteiroResponse.model_rebuild()
 EmpresaResponse.model_rebuild()
+
+
+class EventoBase(BaseModel):
+    titulo: str
+    descricao: Optional[str] = None
+    data_inicio: datetime
+    data_fim: datetime
+    cor: Optional[str] = "#3174ad"
+    diretor_id: int
+
+    @root_validator
+    def verificar_datas(cls, values):
+        inicio = values.get('data_inicio')
+        fim = values.get('data_fim')
+        if inicio and fim and fim <= inicio:
+            raise ValueError("A data de término deve ser posterior ao início.")
+        return values
+
+class EventoCreate(EventoBase):
+    pass 
+
+class EventoUpdate(BaseModel):
+    titulo: Optional[str] = None
+    data_inicio: Optional[datetime] = None
+    data_fim: Optional[datetime] = None
+    status: Optional[str] = None
+
+class EventoOut(EventoBase):
+    id: int
+    criador_id: int
+    uid: str
+    sequence: int
+    google_event_id: Optional[str] = None
+    outlook_event_id: Optional[str] = None
+    updated_at: datetime
+    
+    class Config:
+        orm_mode = True 

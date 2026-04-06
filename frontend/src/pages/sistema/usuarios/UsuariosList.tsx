@@ -124,14 +124,14 @@ export default function UsuariosList() {
                 visible={isDialogVisible}
                 style={{ width: '50vw' }}
                 breakpoints={{ '960px': '75vw', '641px': '90vw' }}
-                onHide={() => setDialogVisible(false)}
+                onHide={() => { setDialogVisible(false); fetchUsuarios(); }}
                 modal
             >
                 {isDialogVisible && (
                     <UsuarioForm
                         usuarioId={selectedUserId}
                         onSuccess={() => { setDialogVisible(false); fetchUsuarios(); }}
-                        onCancel={() => setDialogVisible(false)}
+                        onCancel={() => { setDialogVisible(false); }}
                     />
                 )}
             </Dialog>
@@ -139,7 +139,7 @@ export default function UsuariosList() {
             {changePassword &&
                 <UserPassword
                     id={changePassword}
-                    onHide={() => setChangePassword(null)}
+                    onHide={() => { setChangePassword(null); fetchUsuarios(); }}
                     visible={!!changePassword}
                 />
             }
@@ -149,7 +149,7 @@ export default function UsuariosList() {
                     userId={userAccessData.id}
                     userName={userAccessData.nome}
                     visible={!!userAccessData}
-                    onHide={() => setUserAccessData(null)}
+                    onHide={() => { setUserAccessData(null); fetchUsuarios(); }}
                 />
             )}
 

@@ -24,7 +24,7 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-from routers import auth, users, colaboradores, empresas, roteiros, veiculos, parceiros
+from routers import auth, users, colaboradores, empresas, roteiros, veiculos, parceiros, eventos
 
 app.include_router(auth.router,  prefix="/api")
 app.include_router(users.router, prefix="/api")
@@ -34,6 +34,7 @@ app.include_router(roteiros.router, prefix="/api")
 app.include_router(veiculos.router, prefix="/api")
 app.include_router(parceiros.router, prefix="/api")
 app.include_router(operacao_diaria.router, prefix="/api")
+app.include_router(eventos.router, prefix="/api")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

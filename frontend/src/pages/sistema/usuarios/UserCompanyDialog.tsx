@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog } from 'primereact/dialog';
 import { PickList } from 'primereact/picklist';
 import api from '../../../core/client';
@@ -47,13 +47,34 @@ export const UserCompanyDialog = ({ userId, userName, visible, onHide }: Props) 
     }, [visible, userId]);
 
     const onMoveToTarget = async (e: any) => {
+        const itensMovidos = e.items || e.value || [];
+        if (itensMovidos.length === 0) return;
         try {
-            for (const emp of e.items) {
-                await api.post(`users/${userId}/vincular-empresa/${emp.id}`);
-            }
-            toast.showSuccess('Sucesso', 'Empresa vinculada.');
+            await Promise.all(
+                itensMovidos.map((emp: Empresa) =>
+                    api.post(`users/${userId}/vincular-empresa/${emp.id}`)
+                )
+            );
+            toast.showSuccess('Sucesso', 'Vínculos atualizados com sucesso.');
         } catch (err) {
-            toast.showError('Erro', 'Falha ao vincular empresa.');
+            console.error("Erro ao vincular:", err);
+            toast.showError('Erro', 'Falha ao vincular uma ou mais empresas.');
+            loadData();
+        }
+    };
+
+    const onMoveToSource = async (e: any) => {
+        const itensMovidos = e.items || e.value || [];
+        if (itensMovidos.length === 0) return;
+        try {
+            await Promise.all(
+                itensMovidos.map((emp: Empresa) =>
+                    api.delete(`users/${userId}/remover-empresa/${emp.id}`)
+                )
+            );
+            toast.showSuccess('Sucesso', 'Empresas desvinculadas.');
+        } catch (err) {
+            toast.showError('Erro', 'Falha ao desvincular empresa.');
             loadData();
         }
     };
@@ -78,12 +99,14 @@ export const UserCompanyDialog = ({ userId, userName, visible, onHide }: Props) 
             <PickList
                 source={source}
                 target={target}
+                dataKey="id"
                 itemTemplate={itemTemplate}
                 onChange={(e) => {
                     setSource(e.source);
                     setTarget(e.target);
                 }}
                 onMoveToTarget={onMoveToTarget}
+                onMoveToSource={onMoveToSource}
                 sourceHeader="Disponíveis"
                 targetHeader="Vinculadas"
                 sourceStyle={{ height: '30rem' }}

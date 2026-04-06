@@ -8,26 +8,51 @@ import models
 import os
 from dotenv import load_dotenv
 from database import get_db
+from ldap3 import Server, Connection, ALL, SIMPLE
+from ldap3.core.exceptions import LDAPExceptionError
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "chave-secreta-temporaria-ti-cortezia")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480 
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 480))
+AD_SERVER = os.getenv("AD_SERVER")
+AD_DOMAIN = os.getenv("AD_DOMAIN")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def authenticate_user(username: str, password: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == username).first()    
-    if not user:
-        return False    
-    if not verify_password(password, user.hashed_password):
-        return False        
-    return user
+def authenticate_user(username: str, password: str, db: Session):
+    ad_data = authenticate_ad_user(username, password)
+    
+    if ad_data:
+        print(f"DEBUG AD: Usuário {username} autenticado com sucesso")
+        user = db.query(models.User).filter(models.User.username == username).first()
+        
+        if not user:
+            print(f"DEBUG DB: Criando novo usuário local para {username}")
+            user = models.User(
+                username=username,
+                nome=ad_data["nome"],
+                email=ad_data["email"],
+                role="usuario",
+                hashed_password=get_password_hash(password),
+                is_active=True
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        return user
+
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user and verify_password(password, user.hashed_password):
+        return user
+        
+    return False
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    return pwd_context.hash(password[:72])
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -37,6 +62,32 @@ def create_access_token(data: dict):
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def authenticate_ad_user(username: str, password: str):
+    user_principal_name = f"{username}@{AD_DOMAIN}"
+    try:
+        server = Server(AD_SERVER, get_info=ALL, connect_timeout=5)
+        conn = Connection(server, user=user_principal_name, password=password, authentication=SIMPLE)
+        
+        if conn.bind():
+            conn.search(search_base=f"dc={AD_DOMAIN.replace('.', ',dc=')}",
+                        search_filter=f"(userPrincipalName={user_principal_name})",
+                        attributes=['cn', 'mail'])
+            
+            user_data = None
+            if conn.entries:
+                entry = conn.entries[0]
+                user_data = {
+                    "nome": str(entry.cn) if hasattr(entry, 'cn') else username,
+                    "email": str(entry.mail) if hasattr(entry, 'mail') else f"{username}@{AD_DOMAIN}"
+                }
+            
+            conn.unbind()
+            return user_data
+        return None
+    except Exception as e:
+        print(f"Erro de conexão AD: {e}")
+        return None
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme), 
