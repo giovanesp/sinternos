@@ -77,9 +77,13 @@ def authenticate_ad_user(username: str, password: str):
             user_data = None
             if conn.entries:
                 entry = conn.entries[0]
+                email_ad = None
+                if 'mail' in entry:
+                    email_ad = entry.mail.value if entry.mail.value else None
+
                 user_data = {
-                    "nome": str(entry.cn) if hasattr(entry, 'cn') else username,
-                    "email": str(entry.mail) if hasattr(entry, 'mail') else f"{username}@{AD_DOMAIN}"
+                    "nome": entry.cn.value if 'cn' in entry else username,
+                    "email": email_ad if email_ad else f"{username}@{AD_DOMAIN}"
                 }
             
             conn.unbind()

@@ -5,6 +5,8 @@ from typing import List
 from database import get_db
 import models, schemas, auth
 from icalendar import Calendar, Event as ICalEvent
+from fastapi.responses import Response
+from services.syncGoogle import sync_evento_to_google
 
 router = APIRouter(tags=["agenda"])
 
@@ -165,16 +167,23 @@ def sync_with_google(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    """
-    Rota para forçar a sincronização via API Push com o Google.
-    Exige que você tenha implementado o OAuth2 anteriormente.
-    """
     db_evento = db.query(models.Evento).filter(models.Evento.id == evento_id).first()
     
     if not db_evento:
         raise HTTPException(status_code=404, detail="Evento não encontrado.")
 
-    # Aqui entraria a lógica de chamada à API do Google usando o google_event_id
-    # do seu model para atualizar ou criar.
+    diretor_tokens = db.query(models.UserToken).filter(
+        models.UserToken.user_id == db_evento.diretor_id,
+        models.UserToken.provider == 'google'
+    ).first()
+
+    if not diretor_tokens:
+        raise HTTPException(status_code=400, detail="Diretor não conectou a conta Google.")
+
+    g_id = sync_evento_to_google(db_evento, diretor_tokens.credentials_dict)
     
-    return {"status": "Sincronização enviada para o provedor externo"}
+    if g_id and not db_evento.google_event_id:
+        db_evento.google_event_id = g_id
+        db.commit()
+
+    return {"status": "Sincronizado com sucesso", "google_id": g_id}

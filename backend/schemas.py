@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, model_validator
 from typing import Optional, Literal, List, Union
 from datetime import datetime, date
 
@@ -195,13 +195,13 @@ class EventoBase(BaseModel):
     cor: Optional[str] = "#3174ad"
     diretor_id: int
 
-    @root_validator
-    def verificar_datas(cls, values):
-        inicio = values.get('data_inicio')
-        fim = values.get('data_fim')
+    @model_validator(mode='after')
+    def verificar_datas(self) -> Self:
+        inicio = self.data_inicio
+        fim = self.data_fim
         if inicio and fim and fim <= inicio:
             raise ValueError("A data de término deve ser posterior ao início.")
-        return values
+        return self
 
 class EventoCreate(EventoBase):
     pass 
@@ -221,5 +221,4 @@ class EventoOut(EventoBase):
     outlook_event_id: Optional[str] = None
     updated_at: datetime
     
-    class Config:
-        orm_mode = True 
+    model_config = ConfigDict(from_attributes=True)

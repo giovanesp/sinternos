@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey,Column, Integer, String, Boolean, DateTime, ForeignKey, Table, Date 
+from sqlalchemy import ForeignKey,Column, Integer, String, Boolean, DateTime, ForeignKey, Table, Date, Text 
 from sqlalchemy.orm import relationship
 from database import Base
 import datetime
@@ -145,7 +145,7 @@ class Evento(Base):
     diretor = relationship("User", foreign_keys=[diretor_id], back_populates="eventos_na_minha_agenda")
     uid = Column(String, unique=True, index=True, default=lambda: f"{uuid.uuid4()}@seudominio.com")
     sequence = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     google_event_id = Column(String, nullable=True) 
     outlook_event_id = Column(String, nullable=True)

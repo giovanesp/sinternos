@@ -45,12 +45,12 @@ def seed_db():
             ramo="Agronegócio"
         )
 
-        admin.empresas.append(empresa1)
-        gestor.empresas.append(empresa1)
+        #admin.empresas.append(empresa1)
+        #gestor.empresas.append(empresa1)
 
         db.add(admin)
         db.add(gestor)
-        db.add(empresa1)
+        #db.add(empresa1)
         
         db.commit()
         
