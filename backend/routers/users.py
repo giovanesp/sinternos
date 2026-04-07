@@ -1,3 +1,4 @@
+from urllib import request
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
@@ -8,8 +9,16 @@ import models, schemas, auth
 router = APIRouter(tags=["users"])
 
 @router.get("/users", response_model=List[schemas.UserResponse])
-def list_users(db: Session = Depends(get_db), _ = Depends(auth.check_permissions(['admin']))):
-    return db.query(models.User).order_by(models.User.username).all()
+def list_users(
+    is_director: bool | None = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.User)
+
+    if is_director is not None:
+        query = query.filter(models.User.is_director == is_director)
+    
+    return query.order_by(models.User.nome).all()
 
 @router.get("/users/{user_id}", response_model=schemas.UserResponse)
 def get_user(

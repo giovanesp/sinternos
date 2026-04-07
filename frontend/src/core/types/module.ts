@@ -10,4 +10,5 @@ export interface AppModule {
     order?: number;
     group?: string;
     groupIcon?: string;
+    items?: AppModule[];
 }

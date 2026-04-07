@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
+from sqlalchemy import extract
 from typing import List
 from database import get_db
 import models, schemas, auth
@@ -13,13 +14,11 @@ router = APIRouter(tags=["agenda"])
 @router.get("/eventos", response_model=List[schemas.EventoOut])
 def list_eventos(
     diretor_id: int = None,
+    start_date: str = None,
+    end_date: str = None,
     db: Session = Depends(get_db), 
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    """
-    Lista eventos. Diretores podem ver tudo, usuários comuns veem 
-    apenas onde são criadores ou o diretor responsável.
-    """
     query = db.query(models.Evento)
     
     if not current_user.is_director:
@@ -30,10 +29,24 @@ def list_eventos(
             )
         )
     
+    if start_date and end_date:
+        query = query.filter(
+            models.Evento.data_inicio >= start_date,
+            models.Evento.data_inicio <= end_date
+        )
+
     if diretor_id:
         query = query.filter(models.Evento.diretor_id == diretor_id)
         
-    return query.order_by(models.Evento.data_inicio).all()
+    eventos = query.options(
+        joinedload(models.Evento.diretor),
+        joinedload(models.Evento.criador)
+    ).order_by(models.Evento.data_inicio).all()
+
+    for ev in eventos:
+        ev.diretor_nome = ev.diretor.nome if ev.diretor else "Geral"
+
+    return eventos
 
 @router.post("/eventos", response_model=schemas.EventoOut)
 def create_evento(
@@ -60,7 +73,7 @@ def create_evento(
         return db_new_evento
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Erro ao criar evento na agenda.")
+        raise HTTPException(status_code=400, detail=f"Erro ao criar evento na agenda. {e}")
 
 @router.get("/eventos/{evento_id}", response_model=schemas.EventoOut)
 def get_evento(

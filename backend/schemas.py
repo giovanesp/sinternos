@@ -45,6 +45,8 @@ class UserBase(BaseModel):
     email: str
     role: Literal['admin', 'gestor', 'usuario']
     is_active: bool = True
+    is_director: bool = False
+    is_admin: bool = False
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
@@ -55,6 +57,8 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(default=None, min_length=6)
     role: Optional[Literal['admin', 'gestor', 'usuario']] = None
     is_active: Optional[bool] = None
+    is_director: Optional[bool] = None
+    is_admin: Optional[bool] = None
 
 class UserResponse(UserBase):
     id: int
@@ -62,6 +66,7 @@ class UserResponse(UserBase):
     empresas: List[EmpresaSimple] = []
     is_director: bool
     integration_token: Optional[str] = None 
+    is_admin: bool
 
     class Config:
         model_config = ConfigDict(from_attributes=True)
@@ -194,6 +199,7 @@ class EventoBase(BaseModel):
     data_fim: datetime
     cor: Optional[str] = "#3174ad"
     diretor_id: int
+    status: Optional[str] = "Pendente"
 
     @model_validator(mode='after')
     def verificar_datas(self) -> Self:
@@ -211,6 +217,10 @@ class EventoUpdate(BaseModel):
     data_inicio: Optional[datetime] = None
     data_fim: Optional[datetime] = None
     status: Optional[str] = None
+    diretor_id: Optional[int] = None
+    criador_id: Optional[int] = None
+    cor: Optional[str] = None
+    descricao: Optional[str] = None
 
 class EventoOut(EventoBase):
     id: int
@@ -220,5 +230,7 @@ class EventoOut(EventoBase):
     google_event_id: Optional[str] = None
     outlook_event_id: Optional[str] = None
     updated_at: datetime
+    criador: Optional[UserSimple] = None
+    diretor: Optional[UserSimple] = None
     
     model_config = ConfigDict(from_attributes=True)

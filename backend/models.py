@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import ForeignKey,Column, Integer, String, Boolean, DateTime, ForeignKey, Table, Date, Text 
 from sqlalchemy.orm import relationship
 from database import Base
@@ -23,7 +24,9 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     data_cadastro = Column(DateTime, default=datetime.datetime.utcnow)
     is_director = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)
     eventos_na_minha_agenda = relationship("Evento", foreign_keys="Evento.diretor_id", back_populates="diretor")
+    integration_token = Column(String, nullable=True)
 
     empresas = relationship(
         "Empresa", 
@@ -50,6 +53,7 @@ class Empresa(Base):
     ramo = Column(String(200))
     detalhes = Column(String(1024))
     is_active = Column(Boolean, default=True)
+    integration_token = Column(String, nullable=True)
 
     usuarios = relationship(
         "User", 
@@ -143,7 +147,7 @@ class Evento(Base):
     diretor_id = Column(Integer, ForeignKey("users.id"))
     criador = relationship("User", foreign_keys=[criador_id])
     diretor = relationship("User", foreign_keys=[diretor_id], back_populates="eventos_na_minha_agenda")
-    uid = Column(String, unique=True, index=True, default=lambda: f"{uuid.uuid4()}@seudominio.com")
+    uid = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
     sequence = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

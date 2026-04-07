@@ -23,16 +23,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def authenticate_user(username: str, password: str, db: Session):
-    ad_data = authenticate_ad_user(username, password)
+    ad_data = authenticate_ad_user(username.upper(), password)
     
     if ad_data:
         print(f"DEBUG AD: Usuário {username} autenticado com sucesso")
-        user = db.query(models.User).filter(models.User.username == username).first()
+        user = db.query(models.User).filter(models.User.username == username.lower()).first()
         
         if not user:
             print(f"DEBUG DB: Criando novo usuário local para {username}")
             user = models.User(
-                username=username,
+                username=username.lower(),
                 nome=ad_data["nome"],
                 email=ad_data["email"],
                 role="usuario",
